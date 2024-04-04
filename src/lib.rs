@@ -65,13 +65,13 @@ impl<const ORDER: usize> PidAllocatorInner<ORDER> {
 
     /// Recycles the given PID, making it available for allocation again.
     pub fn recycle(&mut self, number: usize) {
-        let bits_per_layer = usize::BITS as usize;
-        let layer_index = number / bits_per_layer;
-        let bit_index = number % bits_per_layer;
+        const BITS_PER_LAYER_SHIFT: usize = usize::BITS.trailing_zeros() as usize;
+
+        let layer_index = number >> BITS_PER_LAYER_SHIFT;
+        let bit_index = number & (usize::BITS - 1) as usize;
+        
         self.bottom_layers[layer_index] &= !(1 << bit_index);
-        if self.bottom_layers[layer_index] != usize::MAX {
-            self.top_layer &= !(1 << layer_index);
-        }
+        self.top_layer &= !(1 << layer_index);
     }
 }
 
@@ -141,6 +141,10 @@ mod tests {
             }
         }
 
-        assert_eq!(pids.len(), ORDER * usize::BITS as usize, "Not all PIDs were successfully re-allocated");
+        assert_eq!(
+            pids.len(),
+            ORDER * usize::BITS as usize,
+            "Not all PIDs were successfully re-allocated"
+        );
     }
 }

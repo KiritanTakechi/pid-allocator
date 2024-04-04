@@ -16,7 +16,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-pid_allocator = "0.1.0"
+pid_allocator = "0.1.2"
 ```
 
 And then in your Rust code:
