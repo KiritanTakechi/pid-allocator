@@ -6,6 +6,7 @@ authors = ["Kiritan <kiritantakechi@gmail.com>"]
 keywords = ["allocator", "pid"]
 categories = ["no-std"]
 readme = "README.md"
+repository = "https://github.com/KiritanTakechi/pid-allocator"
 license = "MIT"
 
 [profile.release]
