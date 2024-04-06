@@ -1,4 +1,4 @@
-# PidAllocator Crate Documentation
+# PidAllocator
 
 ## Overview
 
@@ -16,7 +16,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-pid_allocator = "0.1.2"
+pid_allocator = "0.1.3"
 ```
 
 And then in your Rust code:
@@ -52,6 +52,7 @@ The main structure that manages PID allocation and recycling.
 
 - `new() -> Self`: Creates a new instance of the PID allocator.
 - `allocate() -> Option<Pid>`: Allocates a new PID, if available, and wraps it in a `Pid` structure.
+- `contains(usize) -> bool`: Checks whether a given PID is currently allocated.
 
 ### `Pid`
 
