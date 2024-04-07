@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use crate::PidAllocator;
 
-const ORDER: usize = 32;
+const ORDER: usize = 64;
 
 #[test]
     fn pid_allocate_success() {

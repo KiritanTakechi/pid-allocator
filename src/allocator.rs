@@ -5,6 +5,46 @@ use spin::mutex::SpinMutex;
 
 /// A thread-safe PID allocator that can allocate and recycle PIDs efficiently.
 /// It encapsulates the allocator's state within an `Arc<SpinMutex<...>>` to allow safe shared access across threads.
+/// This design ensures that PIDs can be allocated and recycled from multiple threads without data races or consistency issues.
+///
+/// The `ORDER` generic parameter determines the capacity of the allocator,
+/// with the total number of allocatable PIDs being `ORDER * usize::BITS`. This makes
+/// the allocator flexible for various use cases, whether you need a few dozen PIDs or thousands.
+///
+/// # Examples
+///
+/// Creating a new PID Allocator:
+///
+/// ```
+/// use pid_allocator::PidAllocator;
+///
+/// let allocator = PidAllocator::<8>::new(); // Creates an allocator that can manage up to 8 * usize::BITS PIDs.
+///
+/// //Allocating a PID:
+/// if let Some(pid) = allocator.allocate() {
+///     println!("Successfully allocated PID: {}", *pid);
+///     // When the `pid` goes out of scope, it will be automatically recycled.
+/// } else {
+///     println!("Failed to allocate a PID. The allocator might be full.");
+/// }
+///
+/// //Checking if a PID is allocated (using `contains` method):
+/// let pid = allocator.allocate().expect("Failed to allocate PID");
+/// assert!(allocator.contains(*pid), "The PID should be marked as allocated.");
+/// 
+/// //Recycle a PID by simply dropping it:
+/// {
+///     let pid = allocator.allocate().expect("Failed to allocate PID");
+///     // PID is in use within this scope
+/// }
+/// // PID is automatically recycled here when `pid` goes out of scope
+/// ```
+///
+/// # Note
+///
+/// This allocator is designed to be used in environments where PID recycling is frequent,
+/// and thread safety is a concern. Its performance characteristics are optimized for scenarios
+/// where both allocation and deallocation (recycling) of PIDs are common operations.
 #[derive(Debug, Default)]
 pub struct PidAllocator<const ORDER: usize> {
     inner: Arc<SpinMutex<PidAllocatorInner<ORDER>>>,
@@ -12,7 +52,7 @@ pub struct PidAllocator<const ORDER: usize> {
 
 /// The internal state of the PID allocator, containing the layers of available PIDs.
 #[derive(Debug)]
-pub struct PidAllocatorInner<const ORDER: usize> {
+pub(crate) struct PidAllocatorInner<const ORDER: usize> {
     top_layer: usize,
     bottom_layers: [usize; ORDER],
 }
@@ -29,7 +69,7 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     ///
     /// ```
     /// use pid_allocator::PidAllocator;
-    /// 
+    ///
     /// let allocator = PidAllocator::<8>::new();
     /// ```
     ///
@@ -60,7 +100,7 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     ///
     /// ```
     /// use pid_allocator::PidAllocator;
-    /// 
+    ///
     /// let allocator = PidAllocator::<8>::new();
     /// if let Some(pid) = allocator.allocate() {
     ///     println!("Allocated PID: {}", *pid);
@@ -71,7 +111,7 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     ///
     /// ```
     /// use pid_allocator::PidAllocator;
-    /// 
+    ///
     /// let allocator = PidAllocator::<8>::new();
     /// let mut pids = Vec::new();
     /// while let Some(pid) = allocator.allocate() {
@@ -106,7 +146,7 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     ///
     /// ```
     /// use pid_allocator::PidAllocator;
-    /// 
+    ///
     /// let allocator = PidAllocator::<32>::new();
     /// let pid = allocator.allocate().expect("Failed to allocate PID");
     ///
@@ -125,7 +165,7 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
 }
 
 impl<const ORDER: usize> PidAllocatorInner<ORDER> {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             top_layer: 0,
             bottom_layers: [0; ORDER],
@@ -133,7 +173,7 @@ impl<const ORDER: usize> PidAllocatorInner<ORDER> {
     }
 
     /// Allocates a PID from the internal state. This method should only be called with exclusive access to the state.
-    pub fn allocate(&mut self) -> Option<usize> {
+    pub(crate) fn allocate(&mut self) -> Option<usize> {
         for (index, &layer) in self.bottom_layers.iter().enumerate() {
             if layer != usize::MAX {
                 let free_bit = (!layer).trailing_zeros() as usize;
@@ -148,7 +188,7 @@ impl<const ORDER: usize> PidAllocatorInner<ORDER> {
     }
 
     /// Recycles the given PID, making it available for allocation again.
-    pub fn recycle(&mut self, number: usize) {
+    pub(crate) fn recycle(&mut self, number: usize) {
         const BITS_PER_LAYER_SHIFT: usize = usize::BITS.trailing_zeros() as usize;
 
         let layer_index = number >> BITS_PER_LAYER_SHIFT;
@@ -159,7 +199,7 @@ impl<const ORDER: usize> PidAllocatorInner<ORDER> {
     }
 
     /// Checks whether a given PID is currently allocated.
-    pub fn contains(&self, number: usize) -> bool {
+    pub(crate) fn contains(&self, number: usize) -> bool {
         const BITS_PER_LAYER_SHIFT: usize = usize::BITS.trailing_zeros() as usize;
         let layer_index = number >> BITS_PER_LAYER_SHIFT;
         let bit_index = number & ((1 << BITS_PER_LAYER_SHIFT) - 1);

@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-pub use allocator::PidAllocator;
+pub use allocator::{Pid, PidAllocator};
 
 pub mod allocator;
 

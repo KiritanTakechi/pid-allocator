@@ -1,16 +1,19 @@
 [package]
 name = "pid-allocator"
 description = "A simple PID allocator for no_std environment"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Kiritan <kiritantakechi@gmail.com>"]
-keywords = ["allocator", "pid"]
+keywords = ["allocator", "pid", "no_std"]
 categories = ["no-std"]
 readme = "README.md"
+documentation = "https://docs.rs/pid-allocator"
+homepage = "https://github.com/KiritanTakechi/pid-allocator"
 repository = "https://github.com/KiritanTakechi/pid-allocator"
 license = "MIT"
 
 [profile.release]
+codegen-units = 1
 opt-level = 3
 lto = true
 
