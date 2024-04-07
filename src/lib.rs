@@ -7,6 +7,9 @@ use core::ops::Deref;
 use alloc::sync::Arc;
 use spin::mutex::SpinMutex;
 
+#[cfg(test)]
+mod tests;
+
 /// A thread-safe PID allocator that can allocate and recycle PIDs efficiently.
 /// It encapsulates the allocator's state within an `Arc<SpinMutex<...>>` to allow safe shared access across threads.
 #[derive(Debug, Default)]
@@ -32,6 +35,8 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     /// # Examples
     ///
     /// ```
+    /// use pid_allocator::PidAllocator;
+    /// 
     /// let allocator = PidAllocator::<8>::new();
     /// ```
     ///
@@ -61,6 +66,8 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     /// Successful allocation:
     ///
     /// ```
+    /// use pid_allocator::PidAllocator;
+    /// 
     /// let allocator = PidAllocator::<8>::new();
     /// if let Some(pid) = allocator.allocate() {
     ///     println!("Allocated PID: {}", *pid);
@@ -70,6 +77,8 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     /// Handling failure to allocate a PID:
     ///
     /// ```
+    /// use pid_allocator::PidAllocator;
+    /// 
     /// let allocator = PidAllocator::<8>::new();
     /// let mut pids = Vec::new();
     /// while let Some(pid) = allocator.allocate() {
@@ -92,20 +101,22 @@ impl<const ORDER: usize> PidAllocator<ORDER> {
     /// Checks whether a given PID is currently allocated.
     ///
     /// # Parameters
-    /// 
+    ///
     /// * `number`: The PID number to check for allocation.
     ///
     /// # Returns
-    /// 
+    ///
     /// * `true` if the PID is currently allocated.
     /// * `false` otherwise.
     ///
     /// # Example
     ///
     /// ```
+    /// use pid_allocator::PidAllocator;
+    /// 
     /// let allocator = PidAllocator::<32>::new();
     /// let pid = allocator.allocate().expect("Failed to allocate PID");
-    /// 
+    ///
     /// assert!(allocator.contains(*pid), "The PID should be marked as allocated.");
     /// ```
     ///
@@ -192,76 +203,5 @@ impl<const ORDER: usize> Deref for Pid<ORDER> {
 impl<const ORDER: usize> Drop for Pid<ORDER> {
     fn drop(&mut self) {
         self.allocator.lock().recycle(self.number);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloc::vec::Vec;
-
-    use super::*;
-
-    const ORDER: usize = 32;
-
-    #[test]
-    fn pid_allocate_success() {
-        let allocator = PidAllocator::<ORDER>::new();
-        assert!(allocator.allocate().is_some());
-    }
-
-    #[test]
-    fn pid_allocate_unique() {
-        let allocator = PidAllocator::<ORDER>::new();
-        let pid1 = allocator.allocate().expect("Failed to allocate PID 1");
-        let pid2 = allocator.allocate().expect("Failed to allocate PID 2");
-        assert_ne!(*pid1, *pid2, "Allocated PIDs should be unique");
-    }
-
-    #[test]
-    fn pid_recycle_and_reallocate() {
-        let allocator = PidAllocator::<ORDER>::new();
-
-        {
-            let _pid = allocator.allocate().expect("Failed to allocate PID");
-        }
-
-        let mut pids = Vec::new();
-        for _ in 0..ORDER * usize::BITS as usize {
-            if let Some(pid) = allocator.allocate() {
-                pids.push(*pid);
-            } else {
-                panic!("Failed to allocate a new PID after recycling");
-            }
-        }
-
-        assert_eq!(
-            pids.len(),
-            ORDER * usize::BITS as usize,
-            "Not all PIDs were successfully re-allocated"
-        );
-    }
-
-    #[test]
-    fn test_contains_allocated_pid() {
-        let allocator = PidAllocator::<ORDER>::new();
-        let pid = allocator.allocate().expect("Failed to allocate PID");
-        assert!(allocator.contains(*pid), "Allocated PID should be recognized as allocated");
-    }
-
-    #[test]
-    fn test_recycle_pid() {
-        let allocator = PidAllocator::<ORDER>::new();
-        let pid = allocator.allocate().expect("Failed to allocate PID");
-        let pid_value = *pid;
-        core::mem::drop(pid); // Drop to trigger recycle
-        assert!(!allocator.contains(pid_value), "Recycled PID should not be recognized as allocated");
-    }
-
-    #[test]
-    fn test_contains_unallocated_pid() {
-        let allocator = PidAllocator::<ORDER>::new();
-        // 假设每个ORDER位都可以分配usize::BITS个PID，取一个足够大的数字以超过可能分配的PID范围
-        let unallocated_pid = ORDER * usize::BITS as usize * 2; 
-        assert!(!allocator.contains(unallocated_pid), "Unallocated PID should not be recognized as allocated");
     }
 }
