@@ -1,7 +1,7 @@
 [package]
 name = "pid-allocator"
 description = "A simple PID allocator for no_std environment"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Kiritan <kiritantakechi@gmail.com>"]
 keywords = ["allocator", "pid"]
