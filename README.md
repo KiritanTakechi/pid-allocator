@@ -16,7 +16,7 @@ Add the following to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-pid_allocator = "0.1.5"
+pid_allocator = "0.1"
 ```
 
 And then in your Rust code:
@@ -31,12 +31,12 @@ const ORDER: usize = 32; // Customize based on your requirements
 
 fn main() {
     let allocator = PidAllocator::<ORDER>::new();
-    
+
     // Attempt to allocate a PID
     if let Some(pid) = allocator.allocate() {
         // Use the PID for your purposes
         println!("Allocated PID: {}", *pid);
-        
+
         // PID will be automatically recycled when `pid` goes out of scope
     }
 }
