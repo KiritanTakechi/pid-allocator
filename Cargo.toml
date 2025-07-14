@@ -1,8 +1,8 @@
 [package]
 name = "pid-allocator"
 description = "A simple PID allocator for no_std environment"
-version = "0.1.5"
-edition = "2021"
+version = "0.1.6"
+edition = "2024"
 authors = ["Kiritan <kiritantakechi@gmail.com>"]
 keywords = ["allocator", "pid", "no_std"]
 categories = ["no-std"]
@@ -18,10 +18,10 @@ opt-level = 3
 lto = true
 
 [dependencies]
-spin = "^0.9.8"
+spin = "^0.10.0"
 
 [dev-dependencies]
-criterion = "^0.5.1"
+criterion = "^0.6.0"
 
 [[bench]]
 name = "allocator_benchmark"
